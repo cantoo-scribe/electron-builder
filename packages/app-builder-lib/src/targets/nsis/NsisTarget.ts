@@ -370,7 +370,7 @@ export class NsisTarget extends Target {
       packager,
       arch: primaryArch,
       safeArtifactName,
-      isWriteUpdateInfo: !this.isPortable,
+      isWriteUpdateInfo: true,
     })
   }
 

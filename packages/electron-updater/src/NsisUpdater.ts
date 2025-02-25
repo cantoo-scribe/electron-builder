@@ -43,6 +43,8 @@ export class NsisUpdater extends BaseUpdater {
   protected doDownloadUpdate(downloadUpdateOptions: DownloadUpdateOptions): Promise<Array<string>> {
     const provider = downloadUpdateOptions.updateInfoAndProvider.provider
     const fileInfo = findFile(provider.resolveFiles(downloadUpdateOptions.updateInfoAndProvider.info), "exe")!
+    const isPortable = fileInfo.info.url.includes("portable")
+
     return this.executeDownload({
       fileExtension: "exe",
       downloadUpdateOptions,
@@ -50,7 +52,9 @@ export class NsisUpdater extends BaseUpdater {
       task: async (destinationFile, downloadOptions, packageFile, removeTempDirIfAny) => {
         const packageInfo = fileInfo.packageInfo
         const isWebInstaller = packageInfo != null && packageFile != null
-        if (isWebInstaller && downloadUpdateOptions.disableWebInstaller) {
+        if (isPortable) {
+          await this.httpExecutor.download(fileInfo.url, destinationFile, downloadOptions)
+        } else if (isWebInstaller && downloadUpdateOptions.disableWebInstaller) {
           throw newError(
             `Unable to download new version ${downloadUpdateOptions.updateInfoAndProvider.info.version}. Web Installers are disabled`,
             "ERR_UPDATER_WEB_INSTALLER_DISABLED"

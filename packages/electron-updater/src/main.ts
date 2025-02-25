@@ -16,6 +16,7 @@ export { PacmanUpdater } from "./PacmanUpdater"
 export { RpmUpdater } from "./RpmUpdater"
 export { MacUpdater } from "./MacUpdater"
 export { NsisUpdater } from "./NsisUpdater"
+export { PortableUpdater } from "./PortableUpdater"
 
 // autoUpdater to mimic electron bundled autoUpdater
 let _autoUpdater: any
@@ -25,6 +26,7 @@ export declare const autoUpdater: AppUpdater
 
 function doLoadAutoUpdater(): AppUpdater {
   // tslint:disable:prefer-conditional-expression
+  console.log("====== process.platform ======", process.platform)
   if (process.platform === "win32") {
     _autoUpdater = new (require("./NsisUpdater").NsisUpdater)()
   } else if (process.platform === "darwin") {

@@ -47,7 +47,7 @@ export async function getConfig(
   }
 
   if (configAndEffectiveFile != null) {
-    log.info({ file: configAndEffectiveFile.configFile == null ? 'package.json ("build" field)' : configAndEffectiveFile.configFile }, "loaded configuration")
+    log.info({ file: configAndEffectiveFile.configFile == null ? 'package.json ("build" field)' : configAndEffectiveFile.configFile }, "TESTING VERSION: loaded configuration")
   }
 
   if (config.extends == null && config.extends !== null) {

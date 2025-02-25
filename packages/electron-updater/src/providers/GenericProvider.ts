@@ -23,6 +23,8 @@ export class GenericProvider extends Provider<UpdateInfo> {
   async getLatestVersion(): Promise<UpdateInfo> {
     const channelFile = getChannelFilename(this.channel)
     const channelUrl = newUrlFromBase(channelFile, this.baseUrl, this.updater.isAddNoCacheQuery)
+    console.log("======= CHANNEL URL =======", channelUrl)
+    console.log("======= CHANNEL FILE =======", channelFile)
     for (let attemptNumber = 0; ; attemptNumber++) {
       try {
         return parseUpdateInfo(await this.httpRequest(channelUrl), channelFile, channelUrl)

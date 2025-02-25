@@ -470,7 +470,8 @@ function isSuitableWindowsTarget(target: Target) {
   if (target.name === "appx" && target.options != null && (target.options as any).electronUpdaterAware) {
     return true
   }
-  return target.name === "nsis" || target.name.startsWith("nsis-")
+  console.log("TARGET NAME", target.name)
+  return true
 }
 
 function expandPublishConfig(options: any, platformPackager: PlatformPackager<any> | null, packager: Packager, arch: Arch | null): void {
