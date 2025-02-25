@@ -1,5 +1,5 @@
 {
-  "name": "notepad",
+  "name": "@cantoo/notepad",
   "version": "1.0.0",
   "description": "a notepad app built using proton-native",
   "main": "index.js",

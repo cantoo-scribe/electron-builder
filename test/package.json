@@ -1,5 +1,5 @@
 {
-  "name": "@electron-builder/test",
+  "name": "@cantoo/@electron-builder/test",
   "version": "0.0.0",
   "private": true,
   "dependencies": {

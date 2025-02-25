@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/electron-userland/electron-builder.git",
+    "url": "git+https://github.com/cantoo-scribe/electron-builder.git",
     "directory": "packages/electron-builder-squirrel-windows"
   },
   "bugs": "https://github.com/electron-userland/electron-builder/issues",

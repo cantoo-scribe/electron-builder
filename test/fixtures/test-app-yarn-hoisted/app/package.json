@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "TestApp",
+  "name": "@cantoo/TestApp",
   "version": "1.1.0",
   "description": "Test Application (test quite \" #378)",
   "author": "Foo Bar <foo@example.com>",
