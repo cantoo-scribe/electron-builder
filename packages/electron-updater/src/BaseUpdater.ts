@@ -6,6 +6,7 @@ import { AppUpdater, DownloadExecutorTask } from "./AppUpdater"
 export abstract class BaseUpdater extends AppUpdater {
   protected quitAndInstallCalled = false
   private quitHandlerAdded = false
+  protected installerPath: string | null = null
 
   protected constructor(options?: AllPublishOptions | null, app?: AppAdapter) {
     super(options, app)
@@ -54,6 +55,9 @@ export abstract class BaseUpdater extends AppUpdater {
       this.dispatchError(new Error("No valid update available, can't quit and install"))
       return false
     }
+
+    // Store the installer path
+    this.installerPath = installerPath
 
     // prevent calling several times
     this.quitAndInstallCalled = true

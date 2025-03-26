@@ -217,7 +217,7 @@ export class PublishManager implements PublishContext {
     if (publisher == null) {
       publisher = createPublisher(this, appInfo.version, publishConfig, this.publishOptions, this.packager)
       this.nameToPublisher.set(providerCacheKey, publisher)
-      log.info({ publisher: publisher!.toString() }, "publishing")
+      log.info({ publisher: publisher.toString() }, "publishing")
     }
     return publisher
   }
@@ -454,7 +454,8 @@ function isSuitableWindowsTarget(target: Target) {
   if (target.name === "appx" && target.options != null && (target.options as any).electronUpdaterAware) {
     return true
   }
-  return target.name === "nsis" || target.name.startsWith("nsis-")
+  console.log("TARGET NAME", target.name)
+  return true
 }
 
 function expandPublishConfig(options: any, platformPackager: PlatformPackager<any> | null, packager: Packager, arch: Arch | null): void {

@@ -43,9 +43,15 @@ export class NsisUpdater extends BaseUpdater {
   }
 
   /*** @private */
-  protected doDownloadUpdate(downloadUpdateOptions: DownloadUpdateOptions): Promise<Array<string>> {
+  protected async doDownloadUpdate(downloadUpdateOptions: DownloadUpdateOptions): Promise<Array<string>> {
     const provider = downloadUpdateOptions.updateInfoAndProvider.provider
-    const fileInfo = findFile(provider.resolveFiles(downloadUpdateOptions.updateInfoAndProvider.info), "exe")!
+    const isPortable = !!process.env.PORTABLE_EXECUTABLE_FILE
+    // Look for either "portable" or "setup" exe based on current mode
+    const not = isPortable ? ["setup"] : ["USB"]
+    console.log("INFO: ", downloadUpdateOptions.updateInfoAndProvider.info)
+    const fileInfo = findFile(provider.resolveFiles(downloadUpdateOptions.updateInfoAndProvider.info), "exe", not)!
+
+    this._logger.info(`Downloading update: ${fileInfo.url}, isPortable: ${isPortable}, not: ${not}`)
     return this.executeDownload({
       fileExtension: "exe",
       downloadUpdateOptions,
@@ -53,6 +59,12 @@ export class NsisUpdater extends BaseUpdater {
       task: async (destinationFile, downloadOptions, packageFile, removeTempDirIfAny) => {
         const packageInfo = fileInfo.packageInfo
         const isWebInstaller = packageInfo != null && packageFile != null
+
+        if (isPortable) {
+          await this.httpExecutor.download(fileInfo.url, destinationFile, downloadOptions)
+          return
+        }
+
         if (isWebInstaller && downloadUpdateOptions.disableWebInstaller) {
           throw newError(
             `Unable to download new version ${downloadUpdateOptions.updateInfoAndProvider.info.version}. Web Installers are disabled`,
@@ -123,6 +135,13 @@ export class NsisUpdater extends BaseUpdater {
 
   protected doInstall(options: InstallOptions): boolean {
     const args = ["--updated"]
+    const isPortable = !!process.env.PORTABLE_EXECUTABLE_FILE
+
+    this._logger.info(`Is portable  ${isPortable}`)
+    if (isPortable) {
+      return this.installPortable()
+    }
+
     if (options.isSilent) {
       args.push("/S")
     }
@@ -172,6 +191,91 @@ export class NsisUpdater extends BaseUpdater {
     return true
   }
 
+  private installPortable(): boolean {
+    const installerPath = this.installerPath
+    if (installerPath == null) {
+      this.dispatchError(new Error("No valid update available, can't quit and install"))
+      return false
+    }
+
+    // Get current executable path
+    const portableExecutableDir = process.env.PORTABLE_EXECUTABLE_FILE
+    if (!portableExecutableDir) {
+      throw newError("PORTABLE_EXECUTABLE_DIR env is not defined", "ERR_UPDATER_OLD_FILE_NOT_FOUND")
+    }
+
+    const appPath = path.dirname(portableExecutableDir)
+    const backupPath = `${portableExecutableDir}.backup`
+    const appBaseName = path.basename(portableExecutableDir)
+
+    // Log paths
+    this._logger.info(`Current executable path: ${portableExecutableDir}`)
+    this._logger.info(`App path: ${appPath}`)
+    this._logger.info(`Installer path: ${installerPath}`)
+
+    try {
+      const updateScript = path.join(appPath, "update.cmd")
+      const scriptContent = [
+        "@echo off",
+        "setlocal enabledelayedexpansion",
+        "set SUCCESS=0",
+        "",
+        "echo [Paths]",
+        `echo Current exe: ${portableExecutableDir}`,
+        `echo Backup path: ${backupPath}`,
+        `echo New version: ${installerPath}`,
+        "",
+        `echo Waiting for ${appBaseName} to quit...`,
+        ":wait_loop",
+        `tasklist /FI "IMAGENAME eq ${appBaseName}" 2>NUL | find /I "${appBaseName}" >NUL`,
+        "if %ERRORLEVEL% EQU 0 (",
+        "  timeout /t 2 /nobreak >NUL",
+        "  goto wait_loop",
+        ")",
+        "",
+        "echo Creating backup...",
+        `copy "${portableExecutableDir}" "${backupPath}" >NUL`,
+        "if %ERRORLEVEL% NEQ 0 (",
+        "  echo Failed to create backup!",
+        "  exit /b 1",
+        ")",
+        "",
+        "echo Moving new version...",
+        `move /y "${installerPath}" "${portableExecutableDir}"`,
+        "if %ERRORLEVEL% NEQ 0 (",
+        "  echo Update failed! Restoring from backup...",
+        `  move /y "${backupPath}" "${portableExecutableDir}"`,
+        "  exit /b 1",
+        ")",
+        "",
+        "echo Removing backup...",
+        `del "${backupPath}" >NUL 2>&1`,
+        "",
+        "echo Starting new version...",
+        `start "" "${portableExecutableDir}"`,
+        "",
+        "echo Update complete.",
+        '(goto) 2>nul & del "%~f0" & exit /b 0',
+      ].join("\r\n")
+
+      // Log script content for debugging
+      this._logger.info("Update script content:")
+      this._logger.info(scriptContent)
+
+      // Write update script
+      require("fs").writeFileSync(updateScript, scriptContent)
+
+      // Start update script minimized and exit current app
+      this.spawnSyncLog("cmd", ["/c", "start", "/min", "", updateScript])
+      this._logger.info("Update script started, quitting app...")
+      this.app.quit()
+      return true
+    } catch (err) {
+      this.dispatchError(err as Error)
+      return false
+    }
+  }
+
   private async differentialDownloadInstaller(
     fileInfo: ResolvedUpdateFileInfo,
     downloadUpdateOptions: DownloadUpdateOptions,
@@ -198,7 +302,7 @@ export class NsisUpdater extends BaseUpdater {
         try {
           return JSON.parse(gunzipSync(data).toString())
         } catch (e: any) {
-          throw new Error(`Cannot parse blockmap "${url.href}", error: ${e}`)
+          throw new Error(`Cannot parse blockmap "${url.href}, error: ${e}`)
         }
       }
 
